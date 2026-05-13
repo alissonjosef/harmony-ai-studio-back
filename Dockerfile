@@ -1,12 +1,19 @@
 FROM python:3.11-slim-bookworm
 
 # ── System packages ─────────────────────────────────────────────────────────
+# sonic-annotator is NOT in Debian Bookworm repos; installed via binary below
 RUN apt-get update && apt-get install -y --no-install-recommends \
         ffmpeg \
-        sonic-annotator \
         curl \
         bzip2 \
     && rm -rf /var/lib/apt/lists/*
+
+# ── sonic-annotator v1.7 static binary ──────────────────────────────────────
+RUN curl -fsSL "https://github.com/sonic-visualiser/sonic-annotator/releases/download/sonic-annotator-1.7/sonic-annotator-1.7.0-linux64-static.tar.gz" \
+       -o /tmp/sonic-annotator.tar.gz \
+    && tar -xzf /tmp/sonic-annotator.tar.gz -C /tmp \
+    && find /tmp -name "sonic-annotator" -type f -exec install -m 755 {} /usr/local/bin/sonic-annotator \; \
+    && rm -rf /tmp/sonic-annotator*
 
 # ── NNLS-Chroma / Chordino Vamp plugin (linux64 binary) ─────────────────────
 RUN mkdir -p /usr/local/lib/vamp \
