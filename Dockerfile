@@ -41,8 +41,6 @@ RUN curl -fsSL "https://github.com/sonic-visualiser/sonic-annotator/releases/dow
 # ── nnls-chroma Vamp plugin (compiled in stage 1) ────────────────────────────
 RUN mkdir -p /usr/local/lib/vamp
 COPY --from=plugin-builder /build/nnls-chroma/nnls-chroma.so /usr/local/lib/vamp/
-# chord.dict defines chord profiles used by Chordino at runtime
-COPY --from=plugin-builder /build/nnls-chroma/chord.dict /usr/local/lib/vamp/
 
 # ── Python deps ─────────────────────────────────────────────────────────────
 WORKDIR /app
