@@ -13,7 +13,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # (no libvamp-sdk.so runtime dependency in the final image)
 RUN git clone --depth 1 https://github.com/vamp-plugins/vamp-plugin-sdk.git /build/vamp-plugin-sdk \
     && cd /build/vamp-plugin-sdk \
-    && ./configure --disable-shared \
+    && ./configure --disable-shared --disable-programs \
     && make
 
 # Build nnls-chroma; the static libvamp-sdk.a gets linked directly into the .so
