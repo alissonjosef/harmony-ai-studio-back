@@ -4,12 +4,17 @@ FROM python:3.11-slim-bookworm
 RUN apt-get update && apt-get install -y --no-install-recommends \
         ffmpeg \
         sonic-annotator \
+        curl \
+        bzip2 \
     && rm -rf /var/lib/apt/lists/*
 
-# Chordino / NNLS-Chroma Vamp plugin (best-effort – may not be in Debian repos)
-RUN apt-get update \
-    && (apt-get install -y --no-install-recommends vamp-plugin-nnls-chroma || true) \
-    && rm -rf /var/lib/apt/lists/*
+# ── NNLS-Chroma / Chordino Vamp plugin (linux64 binary) ─────────────────────
+RUN mkdir -p /usr/local/lib/vamp \
+    && curl -fsSL "http://code.soundsoftware.ac.uk/attachments/download/1693/nnls-chroma-linux64-v1.1.tar.bz2" \
+       -o /tmp/nnls-chroma.tar.bz2 \
+    && tar -xjf /tmp/nnls-chroma.tar.bz2 -C /tmp \
+    && find /tmp -name "*.so" -exec cp {} /usr/local/lib/vamp/ \; \
+    && rm -rf /tmp/nnls-chroma*
 
 # ── Python deps ─────────────────────────────────────────────────────────────
 WORKDIR /app
@@ -21,7 +26,7 @@ COPY main.py .
 
 # ── Smoke tests (fail fast at build time if tools are broken) ───────────────
 RUN python -c "import demucs; print('demucs OK')"
-RUN sonic-annotator -v 2>&1 | head -2
+RUN sonic-annotator -v
 
 # ── Runtime env defaults ────────────────────────────────────────────────────
 ENV DEMUCS_MODEL=htdemucs \
