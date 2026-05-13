@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         make \
         git \
         pkg-config \
+        libboost-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Build vamp-plugin-sdk with static libs only so the plugin .so is self-contained
