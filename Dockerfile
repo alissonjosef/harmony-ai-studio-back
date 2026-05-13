@@ -31,12 +31,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         curl \
     && rm -rf /var/lib/apt/lists/*
 
-# ── sonic-annotator v1.7 static binary ──────────────────────────────────────
+# ── sonic-annotator v1.7 (extraído do AppImage – FUSE não disponível no build) ─
 RUN curl -fsSL "https://github.com/sonic-visualiser/sonic-annotator/releases/download/sonic-annotator-1.7/sonic-annotator-1.7.0-linux64-static.tar.gz" \
        -o /tmp/sonic-annotator.tar.gz \
     && tar -xzf /tmp/sonic-annotator.tar.gz -C /tmp \
-    && find /tmp -name "sonic-annotator" -type f -exec install -m 755 {} /usr/local/bin/sonic-annotator \; \
-    && rm -rf /tmp/sonic-annotator*
+    && APPIMAGE=$(find /tmp -maxdepth 3 -name "sonic-annotator" -type f | head -1) \
+    && chmod +x "$APPIMAGE" \
+    && cd /tmp && "$APPIMAGE" --appimage-extract \
+    && BINARY=$(find /tmp/squashfs-root -name "sonic-annotator" -type f | head -1) \
+    && install -m 755 "$BINARY" /usr/local/bin/sonic-annotator \
+    && rm -rf /tmp/sonic-annotator* /tmp/squashfs-root
 
 # ── nnls-chroma Vamp plugin (compiled in stage 1) ────────────────────────────
 RUN mkdir -p /usr/local/lib/vamp
