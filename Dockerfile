@@ -31,16 +31,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         curl \
     && rm -rf /var/lib/apt/lists/*
 
-# ── sonic-annotator v1.7 (extraído do AppImage – FUSE não disponível no build) ─
+# ── sonic-annotator v1.7 (AppImage extraído com libs Qt6 bundled) ────────────
 RUN curl -fsSL "https://github.com/sonic-visualiser/sonic-annotator/releases/download/sonic-annotator-1.7/sonic-annotator-1.7.0-linux64-static.tar.gz" \
        -o /tmp/sonic-annotator.tar.gz \
     && tar -xzf /tmp/sonic-annotator.tar.gz -C /tmp \
-    && APPIMAGE=$(find /tmp -maxdepth 3 -name "sonic-annotator" -type f | head -1) \
+    && APPIMAGE=$(find /tmp -maxdepth 3 -name "sonic-annotator*" -type f | head -1) \
     && chmod +x "$APPIMAGE" \
     && cd /tmp && "$APPIMAGE" --appimage-extract \
-    && BINARY=$(find /tmp/squashfs-root -name "sonic-annotator" -type f | head -1) \
-    && install -m 755 "$BINARY" /usr/local/bin/sonic-annotator \
-    && rm -rf /tmp/sonic-annotator* /tmp/squashfs-root
+    && mv /tmp/squashfs-root /opt/sonic-annotator \
+    && rm -rf /tmp/sonic-annotator* \
+    && printf '#!/bin/sh\nexec env LD_LIBRARY_PATH=/opt/sonic-annotator/lib:/opt/sonic-annotator/usr/lib:$LD_LIBRARY_PATH /opt/sonic-annotator/usr/bin/sonic-annotator "$@"\n' \
+       > /usr/local/bin/sonic-annotator \
+    && chmod +x /usr/local/bin/sonic-annotator
 
 # ── nnls-chroma Vamp plugin (compiled in stage 1) ────────────────────────────
 RUN mkdir -p /usr/local/lib/vamp
