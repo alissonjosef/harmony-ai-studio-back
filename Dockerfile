@@ -1,11 +1,33 @@
+# ── Stage 1: compile nnls-chroma Vamp plugin ─────────────────────────────────
+# code.soundsoftware.ac.uk is unreachable; build from GitHub source instead
+FROM python:3.11-slim-bookworm AS plugin-builder
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        g++ \
+        make \
+        git \
+        pkg-config \
+    && rm -rf /var/lib/apt/lists/*
+
+# Build vamp-plugin-sdk with static libs only so the plugin .so is self-contained
+# (no libvamp-sdk.so runtime dependency in the final image)
+RUN git clone --depth 1 https://github.com/vamp-plugins/vamp-plugin-sdk.git /build/vamp-plugin-sdk \
+    && cd /build/vamp-plugin-sdk \
+    && ./configure --disable-shared \
+    && make
+
+# Build nnls-chroma; the static libvamp-sdk.a gets linked directly into the .so
+RUN git clone --depth 1 https://github.com/c4dm/nnls-chroma.git /build/nnls-chroma \
+    && cd /build/nnls-chroma \
+    && make -f Makefile.linux VAMP_SDK_DIR=/build/vamp-plugin-sdk
+
+# ── Stage 2: runtime ─────────────────────────────────────────────────────────
 FROM python:3.11-slim-bookworm
 
 # ── System packages ─────────────────────────────────────────────────────────
-# sonic-annotator is NOT in Debian Bookworm repos; installed via binary below
 RUN apt-get update && apt-get install -y --no-install-recommends \
         ffmpeg \
         curl \
-        bzip2 \
     && rm -rf /var/lib/apt/lists/*
 
 # ── sonic-annotator v1.7 static binary ──────────────────────────────────────
@@ -15,13 +37,9 @@ RUN curl -fsSL "https://github.com/sonic-visualiser/sonic-annotator/releases/dow
     && find /tmp -name "sonic-annotator" -type f -exec install -m 755 {} /usr/local/bin/sonic-annotator \; \
     && rm -rf /tmp/sonic-annotator*
 
-# ── NNLS-Chroma / Chordino Vamp plugin (linux64 binary) ─────────────────────
-RUN mkdir -p /usr/local/lib/vamp \
-    && curl -fsSL "http://code.soundsoftware.ac.uk/attachments/download/1693/nnls-chroma-linux64-v1.1.tar.bz2" \
-       -o /tmp/nnls-chroma.tar.bz2 \
-    && tar -xjf /tmp/nnls-chroma.tar.bz2 -C /tmp \
-    && find /tmp -name "*.so" -exec cp {} /usr/local/lib/vamp/ \; \
-    && rm -rf /tmp/nnls-chroma*
+# ── nnls-chroma Vamp plugin (compiled in stage 1) ────────────────────────────
+RUN mkdir -p /usr/local/lib/vamp
+COPY --from=plugin-builder /build/nnls-chroma/nnls-chroma.so /usr/local/lib/vamp/
 
 # ── Python deps ─────────────────────────────────────────────────────────────
 WORKDIR /app
